@@ -4,31 +4,37 @@
         'config_path': '/etc/filebeat/filebeat.yml',
         'config_source': 'salt://filebeat/files/filebeat.jinja',
         'runlevels_install': True,
+        'use_repo': True,
     },
     'Ubuntu': {
         'config_path': '/etc/filebeat/filebeat.yml',
         'config_source': 'salt://filebeat/files/filebeat.jinja',
         'runlevels_install': True,
+        'use_repo': True,
     },
     'RedHat': {
         'config_path': '/etc/filebeat/filebeat.yml',
         'config_source': 'salt://filebeat/files/filebeat.jinja',
         'runlevels_install': True,
+        'use_repo': True,
     },
     'CentOS': {
         'config_path': '/etc/filebeat/filebeat.yml',
         'config_source': 'salt://filebeat/files/filebeat.jinja',
         'runlevels_install': True,
+        'use_repo': True,
     },
     'Suse': {
         'config_path': '/etc/filebeat/filebeat.yml',
         'config_source': 'salt://filebeat/files/filebeat.jinja',
         'runlevels_install': True,
+        'use_repo': True,
     },
     'FreeBSD': {
         'config_path': '/etc/filebeat/filebeat.yml',
         'config_source': 'salt://filebeat/files/filebeat.jinja',
         'runlevels_install': True,
+        'use_repo': True,
     },
 }, merge=salt['pillar.get']('filebeat:lookup')) %}
 
