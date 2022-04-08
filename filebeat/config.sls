@@ -1,9 +1,10 @@
 {% from "filebeat/map.jinja" import conf with context %}
 
-{% if salt['pillar.get']('filebeat:logstash:tls:enabled', False)  %}
-{{ salt['pillar.get']('filebeat:logstash:tls:ssl_cert_path', '/etc/pki/tls/certs/logstash-forwarder.crt') }}:
+{% if salt['pillar.get']('filebeat:logz:tls:enabled', False)  %}
+{{ salt['pillar.get']('filebeat:logz:tls:ssl_cert_path', '/etc/pki/tls/certs/COMODORSADomainValidationSecureServerCA.crt') }}:
   file.managed:
-    - source: {{ salt['pillar.get']('filebeat:logstash:tls:ssl_cert', 'salt://filebeat/files/ca.pem') }}
+    - source: https://raw.githubusercontent.com/logzio/public-certificates/master/AAACertificateServices.crt
+    - name: /etc/pki/tls/certs/COMODORSADomainValidationSecureServerCA.crt
     - template: jinja
     - makedirs: True
     - user: root
@@ -22,11 +23,9 @@ filebeat.config:
     - group: root
     - mode: 644
     - watch_in:
-# unfortunately, filebeat is restarted by cmd until tty issues are resolved
       - cmd: filebeat.service
 
 {% if conf.runlevels_install %}
 filebeat.runlevels_install:
-  cmd.run:
-    - name: update-rc.d filebeat defaults 95 10
+  filebeat.service
 {% endif %}
