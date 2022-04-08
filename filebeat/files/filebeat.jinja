@@ -1,73 +1,39 @@
 {%- set filebeat = salt['pillar.get']('filebeat', {}) %}
-filebeat:
-  prospectors:
-{%- set log_paths = filebeat.get('log_paths', ['/var/log/auth.log', '/var/log/syslog']) %}
-{%- for log_path in log_paths %}
-    -
-      paths:
-{%- for path in log_path.paths %}
-        - {{ path }}
-{%- endfor %}
-      input_type: {{ log_path.get('input_type', 'log') }}
-      document_type: {{ log_path.get('document_type', 'syslog') }}
-      ignore_older: {{ log_path.get('ignore_older', '24h') }}
-      scan_frequency: {{ log_path.get('scan_frequency', '10s') }}
-      backoff: {{ log_path.get('backoff', '1s') }}
-      max_backoff: {{ log_path.get('max_backoff', '10s') }}
-      backoff_factor: {{ log_path.get('backoff_factor', '2') }}
-      force_close_files: {{ log_path.get('force_close_files', 'false') }}
-      fields_under_root: {{ log_path.get('fields_under_root', 'false') }}
-      close_older: {{ log_path.get('close_older', '1h') }}
-{%- if 'multiline' in log_path %}
-      multiline:
-        pattern: "{{ log_path.multiline.get('pattern', '') }}"
-        negate: {{ log_path.multiline.get('negate', 'false') }}
-        match: {{ log_path.multiline.get('match', 'after') }}
-{%- if 'include_lines' in log_path %}
-      include_lines: ["{{ log_path.include_lines|join('", "') }}"]
-{%- endif %}
-{%- if 'exclude_lines' in log_path %}
-      exclude_lines: ["{{ log_path.exclude_lines|join('", "') }}"]
-{%- endif %}
-{%- endif %}
-{%- if 'fields' in log_path %}
-      fields:
-{%- for field in log_path.fields %}
-{%- for key, value in field.items() %}
-        {{ key }}: {{ value }}
-{%- endfor %}
-{%- endfor %}
-{%- endif %}
-{%- endfor %}
+filebeat.inputs:
+{%- set inputs-syslog = filebeat.get('protocals', ['udp', 'tcp'])%}
+{%- for syslog-inputs in protocols%}
+   - type: syslog
+{%-for proto_type in syslog-inputs.proto_types %}
+      protcol.{{proto_type}}:
+        host: ":514"
+{% endfor%}
+    format: auto 
+    max_message_size: {{ syslog-inputs.get('max_message_size', '10MIB')}}
+    timeout: {{ syslog-inputs.get('timeout','500s')}}
+    fields_under_root: true
+    fields:
+      logzio_codec: json
+      token: {{syslog-inputs.get('logz_tocken', '')}}
+      type: syslog
+{% endfor%}
 
-  registry_file: /var/lib/filebeat/registry
+filebeat.registry.path: /var/lib/filebeat
+
+processors:
+- rename:
+    fields:
+     - from: "agent"
+       to: "beat_agent"
+    ignore_missing: true
+- rename:
+    fields:
+     - from: "log.file.path"
+       to: "source"
+    ignore_missing: true
+
 
 output:
-{%- set elasticsearch = filebeat.get('elasticsearch', {}) %}
-{%- set logstash = filebeat.get('logstash', {}) %}
-
-{%- if filebeat.elasticsearch.get('enabled', False) %}
-  elasticsearch:
-    hosts: ["http://{{ filebeat.elasticsearch.server }}"]
-{%- endif %}
-
-{%- if filebeat.logstash.get('enabled', False) %}
   logstash:
-    hosts: ["{{ filebeat.logstash.server }}"]
-    worker: 1
-    loadbalance: true
-    index: filebeat
-
-{%- if 'tls' in filebeat.logstash %}
-{%- if filebeat.logstash.tls.get('enabled', False) %}
-    tls:
-      certificate_authorities: ["{{ filebeat.logstash.tls.ssl_cert_path }}"]
-{%- endif %}
-{%- endif %}
-{%- endif %}
-
-shipper:
-
-logging:
-  files:
-    rotateeverybytes: 10485760 # = 10MB
+    hosts: ["{{filebeat.get.logz_url}}"]  
+    ssl:
+      certificate_authorities: ['{{salt['pillar.get']('filebeat:logz:tls:ssl_cert_path', '/etc/pki/tls/certs/COMODORSADomainValidationSecureServerCA.crt')}}']
